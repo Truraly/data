@@ -4,9 +4,11 @@
 
 这个是我的数据结构小实践，有不少地方都有问题，不过现在的水平处理不了（开摆）
 
+## 注意事项
 
-
-
+- 由于未知类型转换会出现问题，所以暂时不支持使用非常见类型，以及自定义类型
+- 位序初始为0
+- 通常来讲，输入数据有误会返回false/-1
 
 # 静态顺序表 StArray
 
@@ -14,8 +16,7 @@
 
 ## 注意事项
 
-- 由于未知类型转换会出现问题，所以暂时不支持使用非常见类型，以及自定义类型
-- 位序初始为0
+- 
 
 ## 头文件引用：
 
@@ -169,18 +170,206 @@ public:
 
 ## 注意事项
 
-
+- 删除和添加时会向近的方向移动数据，比如删除第二个元素，会将左边的元素（1个）向右移动
+- 多余的空间不会被自动清除，需要手动操作
 
 ## 头文件快速引用：
 
-
+```C++
+#include"DynamicArray.hpp"
+```
 
 ## 类声明：
 
 ```C++
+// 指定发生错误时返回的ElemType类型的值，默认为NULL
+# define _ERROR_ NULL;
+template<class ElemType>
+class DArray {
+private:
+	// 数组头指针
+	ElemType* elem;
+	// 当前最小下标
+	long long begin;
+	// 当前最大下标
+	long long end;
+	// 数组最大空间下标
+	long long listsize;
+	// 扩容倍率
+	double addsize;
+public:
+	// 判断容器是否为空
+	inline bool empty();
+	// 容器的容量
+	inline long long capacity();
+	// 获取容器内元素数量
+	inline long long size();
+	// 获取剩余容量
+	inline long long surplus();
+	// 重新指定容器的长度为num
+	// 如果容器变短，则末尾超出容器长度的元素被删除。
+	// 会将数据移动到开头
+	bool resize(int num);
+	// 重新指定容器的长度为num
+	// 若容器变长，则以[elem]填充新位置（后面空的空间将会被放上可以访问的数据）
+	// 如果容器变短，则末尾超出容器长度的元素被删除。
+	// 会将数据移动到开头
+	bool resize(int num, ElemType elem);
 
+
+	// 修改自动扩容幅度
+	bool changeAddSize(double i);
+	// 预留空间
+	bool reserveSpace(long long i);
+	// 自动整理,将剩余空间调整为目前的k倍
+	bool autoArrange(double k);
+	
+	// 通过下标访问访问不到返回_ERROR_
+	ElemType operator[](long long i);
+	// 访问对应下标的元素的指针
+	// 如果没有会返回NULL指针，相对于[]访问能减少出错
+	ElemType* at(long long i);
+	// 返回容器中第一个数据元素，容器为空则返回_ERROR_
+	ElemType front();
+	// 返回容器中最后一个数据元素，容器为空则返回_ERROR_
+	ElemType back();
+	// 查找第 st 个满足条件的元素的下标，找不到返回-1
+	long long find(
+		ElemType ele,
+		long long st,
+		bool f  // 搜索方向，默认正向搜索
+	);
+
+	// 查找第1个满足条件的元素的下标
+	long long find(
+		ElemType ele,
+		bool f = true // 搜索方向，默认正向搜索
+	);
+
+
+	// 排序
+	bool sort(
+		long long start=-1 ,// 开始排序位置
+		long long end=-1,// 结束排序位置
+		bool sx=true// 顺序or逆序
+	);
+	// 互换容器
+	bool swap(DArray& arr);
+	// 遍历输出
+	bool print(
+		string s = "", // 加入在最前面的文字
+		string x = "", // 加入在元素中间的文字
+		string e = "" ,// 加入在末尾的文字（不会自动换行）
+		bool sx=true// 输出顺序
+	);
+
+	// 合并
+	bool merge(
+		DArray& arr,
+		bool del = false// 是否删除传入的对象
+	);
+	// 插入元素
+	long long addElem(
+		ElemType ele,
+		long long i=-1,// 插入位置
+		long long num=1// 插入数量
+	);
+	// 尾部加入元素，addElem的一种简便形式
+	bool push_back(
+		ElemType ele,
+		long long i=1// 插入数量
+	);
+
+	
+	// 弹出最后一个元素，容器为空则返回_ERROR_
+	ElemType pop_back();
+	// 通过下标删除
+	bool delElem(long long i);
+	// 删除区间（含边界）
+	bool delElem(
+		long long begain, // 开始元素下标
+		long long end// 结束元素下标
+	);
+	// 清空容器
+	bool clear();
+
+	// 构造函数
+	DArray(long long size = -1, double addsize = -1);
+	// 拷贝构造
+	DArray(const DArray& arr);
+	// 析构函数
+	~DArray() { delete elem; }
+
+};
 ```
 
-
-
 ## 示例使用方法：
+
+```C++
+	// 创建一个默认容器
+	DArray<int> test1;
+
+	// 创建一个指定大小容器
+	DArray<int> test2(15);
+
+	// 创建一个指定增长倍率容器
+	DArray<int> test3(10,3);
+
+	// 增加内容
+	test1.push_back(3,  5);
+	test1.push_back(1);
+	test1.push_back(5);
+	test1.push_back(43);
+	test1.push_back(8);
+	test1.addElem(99, 2, 3);
+	test1.push_back(2, 4);
+
+	// 排序
+	test1.sort(3);
+
+	// 合并
+	test2.merge(test1);
+
+	// 清空
+	test2.clear();
+	
+	cout << "判断是否为空" << test1.empty()<< endl;
+
+	// 重新设定容器大小
+	test1.resize(10);
+
+	// 重新设定大小,并填充数字
+	test1.resize(15,114);
+
+	// 修改默认扩容倍率
+	test1.changeAddSize(3);
+
+	// 预留空间
+	test1.reserveSpace(100);
+
+	// 调整空间
+	test1.autoArrange(1.5);
+
+	cout << "通过下标访问(2)" << test1[2] << endl;
+	cout << "通过函数访问(2)" << test1.at(2) << endl;
+	cout << "访问第一个元素" << test1.front() << endl;
+	cout << "访问最后一个元素" << test1.back() << endl;
+	cout << "寻找元素（2）" << test1.find(2) << endl;
+	cout << "反向寻找元素（2）" << test1.find(2,false) << endl;
+	cout << "寻找元素（第二个2）" << test1.find(2,2,true) << endl;
+
+	// 交换容器
+	test1.swap(test2);
+
+	cout << "弹出最后一个元素" << test2.pop_back() << endl;
+
+	// 删除元素
+	test2.delElem(1);
+
+	// 删除一段元素
+	test2.delElem(2,4);
+
+	// 拷贝构造
+	DArray<int> test4(test2);
+```
+
