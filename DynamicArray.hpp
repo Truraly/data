@@ -17,11 +17,11 @@
 #pragma once
 #include<string.h>// 不加会找不到NULL
 #include<iostream>// 输入输出流
+#include<stdlib.h>
 using namespace std;
 
 
 # define _ERROR_ NULL;// 指定发生错误时返回的ElemType类型的值，默认为NULL
-
 template<class ElemType>
 class DArray {
 private:
@@ -47,7 +47,8 @@ public:
 	// 重新指定容器的长度为num
 	// 如果容器变短，则末尾超出容器长度的元素被删除。
 	// 会将数据移动到开头
-	bool resize(int num);
+	// 若为-1则单纯为了排序
+	bool resize(int num=-1);
 	// 重新指定容器的长度为num
 	// 若容器变长，则以[elem]填充新位置（后面空的空间将会被放上可以访问的数据）
 	// 如果容器变短，则末尾超出容器长度的元素被删除。
@@ -159,15 +160,18 @@ long long DArray<ElemType>::size() {
 // 获取剩余容量
 template<class ElemType>
 inline long long  DArray<ElemType>::surplus() {
-	return this->capacity() - this->size();
+	if (this->end < 0 || this->begin < 0 || this->end < this->begin) { return this->listsize+1; }
+	return this->listsize-this->end+this->begin;
 }
 // 重新指定容器的长度为num，如果容器变短，则末尾超出容器长度的元素被删除。
 template<class ElemType>
 bool DArray<ElemType>::resize(int num) {
+	// 数据修改
+	if (num == -1) { num = listsize + 1; }
 	// 数据不合法
 	if (num < 0) { return false; }
 	// 开辟空间,如果等大就对原来的数组做处理
-	ElemType* ne = (num == listsize + 1?this->elem: new ElemType[num]);
+	ElemType* ne = (num == listsize + 1?this->elem: (ElemType*)malloc(num *sizeof(ElemType)));
 	//ElemType* ne = new ElemType[num];
 	if (num >= this->size()) {
 		// 把前面空白的删掉搬过去
@@ -187,13 +191,13 @@ bool DArray<ElemType>::resize(int num) {
 	}
 
 
-	if (!(num == listsize + 1)) {
-		ElemType* de = this->elem;
-		
+	if (!(num == listsize + 1||num == -1)) {
+		//ElemType* de = this->elem;
+		free(this->elem);
 		this->elem = ne;
-		this->listsize = num;
-	
-		// free(de);// -dz-内存溢出
+		this->listsize = num-1;
+		//delete[] de;
+		//if (de == NULL) {  }
 		// cout <<"de =" << de[1] << endl;
 	}
 	return true;
@@ -477,72 +481,40 @@ bool DArray<ElemType>::merge(DArray<ElemType>& arr,bool del) {
 template<class ElemType>
 long long DArray<ElemType>::addElem(ElemType ele, long long i, long long num ) {
 	// 数据修改
-	if (i == -1) { i = this->end + 1; }
-	if (i < -1 || num < 1||i>this->listsize+1) { return false; }
+	if (i == -1) { i =(this->size()==0?0: this->end + 1) ; }
+	if (i < -1 || num < 1||i>this->size()) { return false; }
 	// 扩容
-	if (this->size() == this->capacity()) {
+	if (this->surplus()<=0) {
 		this->autoArrange(this->addsize);
 	}
-	long long les = num;// 剩余
-	//while (les > 0) {
-		//if (this->size() == this->capacity()) { autoArrange(this->addsize); }
-		// 优先向左移动
+
+	// 优先向左移动
 	if (this->begin - i < this->end - i && this->begin>0) {
-		// 一次放不下
-		if (this->begin < les) {
-			long long L = begin;
-			for (long long j = this->begin; j <= i; j++) {
-				this->elem[j - L] = this->elem[j];
-			}
-			for (long long j = i - L; j <= i; j++) {
-				this->elem[j] = ele;
-				les--;
-			}
-			this->begin = 0;
+	
+		
+		for (long long j = this->begin; j <= i; j++) {
+			this->elem[j -1] = this->elem[j];
 		}
-		// 一次放得下
-		else {
-			long long L = les;
-			for (long long j = this->begin; j <= i; j++) {
-				this->elem[j - L] = this->elem[j];
-			}
-			for (long long j = i - L; j <= i; j++) {
-				this->elem[j] = ele;
-				les--;
-			}
-			this->begin -= L;
-		}
+		this->elem[i] = ele;
+		num--;
+		this->begin --;
+		
 	}
 	// 向右塞
 	else {
-		// 一次放不下
-		if (this->listsize - this->end < les) {
-			long long L = this->listsize - this->end;
-			for (long long j = end; j >= i; j--) {
-				this->elem[j + L] = this->elem[j];
-			}
-			for (long long j = i; j < i + L; j++) {
-				this->elem[j] = ele;
-				les--;
-			}
-			this->end = this->listsize;
+		for (long long j = end; j >= i; j--) {
+			this->elem[j + 1] = this->elem[j];
 		}
-		else {
-			long long L = les;
-			for (long long j = end; j >= i; j--) {
-				this->elem[j + L] = this->elem[j];
-			}
-			for (long long j = i; j < i + L; j++) {
-				this->elem[j] = ele;
-				les--;
-			}
-			this->end +=L;
-		}
+		this->elem[i] = ele;
+		num--;
+		if (this->size() <= 0) 
+		{ this->end = 0; }
+		else { this->end++; }
 	}
 	
 		
 
-	if (les > 0) { return this->addElem(ele, i, les); }
+	if (num > 0) { return this->addElem(ele, i,num); }
 	//cout << "les = " << les << endl;
 	return true;
 
@@ -552,7 +524,22 @@ long long DArray<ElemType>::addElem(ElemType ele, long long i, long long num ) {
 // 尾部加入元素
 template<class ElemType>
 bool DArray<ElemType>::push_back(ElemType ele, long long i) {
-	return addElem(ele,-1,i);
+	if (i <= 0) { return false; }
+	// 扩容
+	if (this->surplus() <= 0) {
+		this->autoArrange(this->addsize);
+	}
+	// 往前移
+	if (this->listsize - this->end < i) {
+		this->resize();
+	}
+
+	for (; i > 0 && this->surplus() > 0; (this->size() == 0 ? this->end = 0 : this->end++), i--) {
+		
+		this->elem[end + 1] = ele;
+	}
+	if (i > 0) { return this->push_back(ele, i); }
+	return true;
 }
 
 
@@ -617,7 +604,7 @@ DArray<ElemType>::DArray(long long size,double addsize) {
 	this->addsize= (addsize <= 1 ? 1.5 : addsize);
 	this->begin = 0;
 	this->end = -1;
-	elem = new ElemType[listsize+1];
+	this->elem =(ElemType*) malloc((listsize + 1) * sizeof(ElemType));
 	for (long long j = 0; j < listsize; j++) {
 		elem[j] = (ElemType)0;
 	}
@@ -629,7 +616,7 @@ DArray<ElemType>::DArray(const DArray& arr) {
 	this->addsize = arr.addsize;
 	this->begin = arr.begin;
 	this->end = arr.end;
-	this->elem = new ElemType[arr.listsize];
+	this->elem = (ElemType*)malloc((arr.listsize + 1) * sizeof(ElemType));
 	for (long long j = 0; j < arr.listsize; j++) {
 		this->elem[j] = arr.elem[j];
 	}
